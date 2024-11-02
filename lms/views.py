@@ -10,6 +10,7 @@ class UserView(ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [AllowAny]
+    
 
 class StudentProfile(ModelViewSet):
     queryset = Student.objects.all()
