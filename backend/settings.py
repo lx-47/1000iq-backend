@@ -64,7 +64,6 @@ SIMPLE_JWT = {
     'BLACKLIST_AFTER_ROTATION' : True,
     'ALGORITHM' : "HS256",
     'TOKEN_OBTAIN_SERIALIZER' : "lms.serializers.CustomTokenObtainPairSerializer"
-
 }
 
 REST_FRAMEWORK = {
