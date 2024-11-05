@@ -1,7 +1,7 @@
 from unicodedata import name
 from django.urls import path,include
 from rest_framework.routers import DefaultRouter
-from .views import CommentView, CourseView, EnrollCourseView, EnrolledStudentsView,StudentView, StudentProfileView, TutorProfileView, TutorView, UserView, EnrolledView
+from .views import CommentView, CourseView, EnrollCourseView, EnrolledStudentsView, LessonView, SectionView, Sectionview,StudentView, StudentProfileView, TodoView, TutorProfileView, TutorView, UserView, EnrolledView
 from lms.views import LogoutView, RegisterView
 from rest_framework_simplejwt.views import TokenObtainPairView
 
@@ -10,6 +10,8 @@ router.register(r'user', UserView)
 router.register(r'student', StudentView)
 router.register(r'tutor', TutorView)
 router.register(r'courses', CourseView)
+router.register(r'todo', TodoView)
+router.register(r'section', SectionView)
 
 urlpatterns = [
     path('',include(router.urls)),
@@ -21,5 +23,7 @@ urlpatterns = [
     path('enrolled-courses/', EnrolledView.as_view(), name='enrolled'),
     path('courses/<int:course_id>/enroll/', EnrollCourseView.as_view(), name='enroll'),
     path('courses/<int:course_id>/comments/', CommentView.as_view(), name='comments'),
-    path('courses/<int:course_id>/students/', EnrolledStudentsView.as_view(), name="enrolled_students")
+    path('courses/<int:course_id>/students/', EnrolledStudentsView.as_view(), name="enrolled_students"),
+    path('courses/<int:course_id>/sections/', Sectionview.as_view(), name='sections'),
+    path('courses/<int:course_id>/sections/<int:section_id>/lessons/', LessonView.as_view(), name='lessons'),
 ]

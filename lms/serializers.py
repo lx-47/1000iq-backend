@@ -2,7 +2,7 @@ from dataclasses import fields
 from django.contrib.auth.hashers import make_password
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from lms.models import Comment, Course, CourseEnrollment, Student, Tutor, User
+from lms.models import Comment, Course, CourseEnrollment, Lesson, Section, Student, Todo, Tutor, User
 
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
@@ -31,14 +31,10 @@ class StudentSerializer(serializers.ModelSerializer):
         user = self.context['request'].user
         return Student.objects.create(user = user, **validated_data)
 
-    def create(self, validated_data):
-        user = self.context['request'].user
-        return Student.objects.create(user=user, **validated_data)
-
 class TutorSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tutor
-        fields = ['user','specialization','department','years_of_experience','bio',]
+        fields = ['user','first_name','last_name','specialization','department','years_of_experience','bio',]
     
     def create(self, validated_data):
         user = self.context['request'].user
@@ -48,7 +44,21 @@ class CourseSerializer(serializers.ModelSerializer):
     class Meta:
         model = Course        
         fields = '__all__'
-    
+
+class SectionSerializer(serializers.ModelSerializer):
+    course = CourseSerializer
+    class Meta:
+        model = Section
+        fields = '__all__'  
+        read_only_fields = ['id','course'] 
+
+class LessonSerialzer(serializers.ModelSerializer):
+    section = SectionSerializer
+    class Meta:
+        model = Lesson
+        fields = '__all__'
+        read_only_fields = ['id','section']     
+
 class CourseEnrollmentSerializer(serializers.ModelSerializer):
     course = CourseSerializer(read_only = True)
     class Meta:
@@ -60,3 +70,10 @@ class CommmentSerializer(serializers.ModelSerializer):
         model = Comment
         fields = '__all__'
         read_only_fields = ['course', 'user', 'created_at']
+
+class TodoSerializer(serializers.ModelSerializer):
+    user = UserSerializer
+    class Meta:
+        model = Todo
+        fields = '__all__'
+        read_only_fields = ['id','user','created_on']

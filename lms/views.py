@@ -2,8 +2,8 @@ from urllib import request
 from rest_framework.generics import RetrieveUpdateAPIView
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
-from lms.models import Comment, Course, CourseEnrollment, Student, Tutor, User
-from lms.serializers import CommmentSerializer, CourseEnrollmentSerializer, CourseSerializer, StudentSerializer, TutorSerializer, UserSerializer
+from lms.models import Comment, Course, CourseEnrollment, Lesson, Section, Student, Todo, Tutor, User
+from lms.serializers import CommmentSerializer, CourseEnrollmentSerializer, CourseSerializer, LessonSerialzer, SectionSerializer, StudentSerializer, TodoSerializer, TutorSerializer, UserSerializer
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
@@ -90,6 +90,7 @@ class EnrolledView(APIView):
         serializer = CourseEnrollmentSerializer(enrollments, many = True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+#To view all students enrolled in a course
 class EnrolledStudentsView(APIView):
     permission_classes = [IsAuthenticated]
     def get(self, request, course_id):
@@ -148,3 +149,54 @@ class CommentView(APIView):
             serialzer.save(course = course, user = request.user)
             return Response(serialzer.data, status=status.HTTP_201_CREATED)
         return Response(serialzer.errors, status=status.HTTP_400_BAD_REQUEST)   
+
+class TodoView(ModelViewSet):
+    queryset = Todo.objects.all()
+    permission_classes = [IsAuthenticated]
+    serializer_class = TodoSerializer
+    def get_queryset(self):
+        return Todo.objects.filter(user = self.request.user)
+    def perform_create(self, serializer):
+        serializer.save(user = self.request.user)    
+
+class SectionView(ModelViewSet):
+    permission_classes = [IsAuthenticated]
+    queryset = Section.objects.all()
+    serializer_class = SectionSerializer
+
+class Sectionview(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self, request, course_id):
+        section = Section.objects.filter(course_id = course_id)
+        serializer = SectionSerializer(section, many = True)
+        return Response(serializer.data, status = status.HTTP_200_OK)
+
+    def post(self, request, course_id):
+        try:
+            course = Course.objects.get(id = course_id)
+        except Course.DoesNotExist:
+            Response({'detail':'Course not found.'},status=status.HTTP_404_NOT_FOUND)    
+        serialzer = SectionSerializer(data = request.data)
+        if serialzer.is_valid():
+            serialzer.save(course = course)
+            return Response(serialzer.data, status=status.HTTP_201_CREATED)
+        return Response(serialzer.errors, status=status.HTTP_400_BAD_REQUEST)            
+
+class LessonView(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self, request, section_id, *args, **kwargs):
+        
+        lesson = Lesson.objects.filter(section_id = section_id)
+        serializer = LessonSerialzer(lesson, many = True)
+        return Response(serializer.data, status = status.HTTP_200_OK)
+
+    def post(self, request, section_id,  *args, **kwargs):
+        try:
+            section = Section.objects.get(id = section_id)
+        except Section.DoesNotExist:
+            Response({'detail':'Section not found.'},status=status.HTTP_404_NOT_FOUND)    
+        serialzer = LessonSerialzer(data = request.data)
+        if serialzer.is_valid():
+            serialzer.save(section = section)
+            return Response(serialzer.data, status=status.HTTP_201_CREATED)
+        return Response(serialzer.errors, status=status.HTTP_400_BAD_REQUEST)  
