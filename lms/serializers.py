@@ -2,7 +2,7 @@ from dataclasses import fields
 from django.contrib.auth.hashers import make_password
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from lms.models import Course, CourseEnrollment, Student, Tutor, User
+from lms.models import Comment, Course, CourseEnrollment, Student, Tutor, User
 
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
@@ -53,4 +53,10 @@ class CourseEnrollmentSerializer(serializers.ModelSerializer):
     course = CourseSerializer(read_only = True)
     class Meta:
         model = CourseEnrollment
-        fields = ['id', 'enrollment_date', 'validity', 'course']   
+        fields = ['id', 'enrollment_date', 'validity', 'course'] 
+
+class CommmentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Comment
+        fields = '__all__'
+        read_only_fields = ['course', 'user', 'created_at']

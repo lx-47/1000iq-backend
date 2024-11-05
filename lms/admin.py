@@ -1,7 +1,7 @@
 from dataclasses import fields
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import Course, CourseEnrollment, Student, Tutor, User
+from .models import Course, CourseEnrollment, Student, Tutor, User, Comment
 # Register your models here.
 class CustomUserAdmin(UserAdmin):
     fieldsets = UserAdmin.fieldsets + (
@@ -24,3 +24,4 @@ admin.site.register(Student)
 admin.site.register(Tutor)
 admin.site.register(Course)
 admin.site.register(CourseEnrollment)
+admin.site.register(Comment)

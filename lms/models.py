@@ -1,4 +1,5 @@
-from pyexpat import model
+from pickle import TRUE
+from tkinter import CASCADE
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.conf import settings
@@ -30,6 +31,7 @@ class Tutor(models.Model):
     bio = models.TextField(blank=True, null=True)
 
 class Course(models.Model):
+    image = models.CharField(max_length=255, null=True)
     title = models.CharField(max_length=200)
     description = models.TextField()
     tutor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
@@ -40,3 +42,9 @@ class CourseEnrollment(models.Model):
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
     enrollment_date = models.DateTimeField(auto_now_add=True)
     validity = models.BooleanField(default=True)
+
+class Comment(models.Model):
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)  
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
