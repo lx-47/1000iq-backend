@@ -1,9 +1,8 @@
-from urllib import request
-from rest_framework.generics import RetrieveUpdateAPIView
+from rest_framework.generics import RetrieveUpdateAPIView, UpdateAPIView
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 from lms.models import Comment, Course, CourseEnrollment, Lesson, Section, Student, Todo, Tutor, User
-from lms.serializers import CommmentSerializer, CourseEnrollmentSerializer, CourseSerializer, LessonSerialzer, SectionSerializer, StudentSerializer, TodoSerializer, TutorSerializer, UserSerializer
+from lms.serializers import ChangePasswordSerializer, CommmentSerializer, CourseEnrollmentSerializer, CourseSerializer, LessonSerialzer, SectionSerializer, StudentSerializer, TodoSerializer, TutorSerializer, UserSerializer
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
@@ -39,6 +38,17 @@ class UserView(ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [AllowAny]
+
+class ChangePasswordView(UpdateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = ChangePasswordSerializer
+
+    def update(self, request, *args, **kwargs):
+        self.object = request.user
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        return Response({"detail": "Password has been changed successfully."}, status=status.HTTP_200_OK)
 
 class StudentProfileView(RetrieveUpdateAPIView):
     permission_classes = [IsAuthenticated]
@@ -185,7 +195,7 @@ class Sectionview(APIView):
 class LessonView(APIView):
     permission_classes = [IsAuthenticated]
     def get(self, request, section_id, *args, **kwargs):
-        
+
         lesson = Lesson.objects.filter(section_id = section_id)
         serializer = LessonSerialzer(lesson, many = True)
         return Response(serializer.data, status = status.HTTP_200_OK)

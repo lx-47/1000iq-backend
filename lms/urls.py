@@ -1,7 +1,6 @@
-from unicodedata import name
 from django.urls import path,include
 from rest_framework.routers import DefaultRouter
-from .views import CommentView, CourseView, EnrollCourseView, EnrolledStudentsView, LessonView, SectionView, Sectionview,StudentView, StudentProfileView, TodoView, TutorProfileView, TutorView, UserView, EnrolledView
+from .views import ChangePasswordView, CommentView, CourseView, EnrollCourseView, EnrolledStudentsView, LessonView, SectionView, Sectionview,StudentView, StudentProfileView, TodoView, TutorProfileView, TutorView, UserView, EnrolledView
 from lms.views import LogoutView, RegisterView
 from rest_framework_simplejwt.views import TokenObtainPairView
 
@@ -18,6 +17,7 @@ urlpatterns = [
     path('register/', RegisterView.as_view(), name='register'),
     path('login/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('logout/', LogoutView.as_view(), name='login'),
+    path('change-password/', ChangePasswordView.as_view(), name='change_password'),
     path('student-profile/', StudentProfileView.as_view(), name='student_profile'),
     path('tutor-profile/', TutorProfileView.as_view(), name='tutor_profile'),
     path('enrolled-courses/', EnrolledView.as_view(), name='enrolled'),
