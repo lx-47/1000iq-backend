@@ -1,16 +1,41 @@
 from django.urls import path,include
 from rest_framework.routers import DefaultRouter
-from .views import ChangePasswordView, CommentView, CourseView, EnrollCourseView, EnrolledStudentsView, LessonView, SectionView, Sectionview,StudentView, StudentProfileView, TodoView, TutorProfileView, TutorView, UserView, EnrolledView
+from .views import (
+    AssessmentViewSet, 
+    ChangePasswordView, 
+    CommentView, 
+    CourseView, 
+    EnrollCourseView, 
+    EnrolledStudentsView, 
+    LessonView, 
+    RatingView,
+    RewardView, 
+    SectionView, 
+    Sectionview,
+    StudentAssessmentViewSet, 
+    StudentView, 
+    StudentProfileView, 
+    TodoView, 
+    TutorProfileView, 
+    TutorView, 
+    UserView, 
+    EnrolledView
+)
 from lms.views import LogoutView, RegisterView
 from rest_framework_simplejwt.views import TokenObtainPairView
 
 router = DefaultRouter()
 router.register(r'user', UserView)
 router.register(r'student', StudentView)
-router.register(r'tutor', TutorView)
+router.register(r'tutors', TutorView)
 router.register(r'courses', CourseView)
 router.register(r'todo', TodoView)
-router.register(r'section', SectionView)
+router.register(r'sections', SectionView)    
+router.register(r'reward', RewardView)
+course_rating_create = RatingView.as_view({
+    'post': 'create',
+    'get':'list',
+})
 
 urlpatterns = [
     path('',include(router.urls)),
@@ -26,4 +51,7 @@ urlpatterns = [
     path('courses/<int:course_id>/students/', EnrolledStudentsView.as_view(), name="enrolled_students"),
     path('courses/<int:course_id>/sections/', Sectionview.as_view(), name='sections'),
     path('courses/<int:course_id>/sections/<int:section_id>/lessons/', LessonView.as_view(), name='lessons'),
+    path('sections/<int:section_id>/assessments/', AssessmentViewSet.as_view({'get': 'list'})),
+    path('assessments/<int:assessment_id>/reports/', StudentAssessmentViewSet.as_view(), name='reports'),
+    path('courses/<int:course_id>/rating/', course_rating_create, name='course-rating-create'),
 ]

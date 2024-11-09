@@ -1,13 +1,46 @@
 from rest_framework.generics import RetrieveUpdateAPIView, UpdateAPIView
+from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
-from rest_framework.viewsets import ModelViewSet
-from lms.models import Comment, Course, CourseEnrollment, Lesson, Section, Student, Todo, Tutor, User
-from lms.serializers import ChangePasswordSerializer, CommmentSerializer, CourseEnrollmentSerializer, CourseSerializer, LessonSerialzer, SectionSerializer, StudentSerializer, TodoSerializer, TutorSerializer, UserSerializer
+from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
+from lms.models import ( 
+    Assessment, 
+    Comment, 
+    Course, 
+    CourseEnrollment, 
+    CourseRating, 
+    Lesson, 
+    Question, 
+    Reward, 
+    Section, 
+    Student, 
+    StudentAssessment, 
+    Todo, 
+    Tutor, 
+    User 
+    )
+from lms.serializers import ( 
+    AssessmentSerializer, 
+    ChangePasswordSerializer, 
+    CommmentSerializer, 
+    CourseEnrollmentSerializer, 
+    CourseRatingSerializer, 
+    CourseSerializer, 
+    CourseSerializer2, 
+    LessonSerializer, 
+    QuestionSerializer, 
+    RewardSerializer, 
+    SectionSerializer,
+    StudentAssessmentSerializer, 
+    StudentSerializer, 
+    TodoSerializer, 
+    TutorSerializer, 
+    UserSerializer
+    )
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework.exceptions import NotFound, ValidationError
+from rest_framework.exceptions import NotFound
 from rest_framework.filters import SearchFilter
 
 class RegisterView(APIView):
@@ -81,10 +114,33 @@ class TutorView(ModelViewSet):
 
 class CourseView(ModelViewSet):
     queryset = Course.objects.all()
-    serializer_class = CourseSerializer
+    serializer_class = CourseSerializer2
     permission_classes = [IsAuthenticated]
     filter_backends=[SearchFilter]
-    search_fields = ['title','description']
+    search_fields = ['title','category','description']
+
+class RatingView(ModelViewSet):
+    serializer_class = CourseRatingSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return CourseRating.objects.filter(student__user=self.request.user)
+
+    def create(self, request, *args, **kwargs):
+        # Get the course ID from the URL
+        course_id = self.kwargs.get('course_id')
+        course = get_object_or_404(Course, id=course_id)
+        
+        # Ensure the rating is unique for this student and course
+        if CourseRating.objects.filter(course=course, student__user=request.user).exists():
+            return Response({"detail": "You have already rated this course."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Create a rating
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(course=course, student=request.user.student)  # Use the related student instance
+        
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 #To view all the courses a student has enrolled in
 class EnrolledView(APIView):
@@ -197,7 +253,7 @@ class LessonView(APIView):
     def get(self, request, section_id, *args, **kwargs):
 
         lesson = Lesson.objects.filter(section_id = section_id)
-        serializer = LessonSerialzer(lesson, many = True)
+        serializer = LessonSerializer(lesson, many = True)
         return Response(serializer.data, status = status.HTTP_200_OK)
 
     def post(self, request, section_id,  *args, **kwargs):
@@ -205,8 +261,32 @@ class LessonView(APIView):
             section = Section.objects.get(id = section_id)
         except Section.DoesNotExist:
             Response({'detail':'Section not found.'},status=status.HTTP_404_NOT_FOUND)    
-        serialzer = LessonSerialzer(data = request.data)
+        serialzer = LessonSerializer(data = request.data)
         if serialzer.is_valid():
             serialzer.save(section = section)
             return Response(serialzer.data, status=status.HTTP_201_CREATED)
         return Response(serialzer.errors, status=status.HTTP_400_BAD_REQUEST)  
+    
+class AssessmentViewSet(ReadOnlyModelViewSet):
+    queryset = Assessment.objects.all()
+    serializer_class = AssessmentSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        section_id = self.kwargs.get('section_id')
+        return Assessment.objects.filter(section_id=section_id, is_active=True)
+
+class StudentAssessmentViewSet(RetrieveUpdateAPIView):
+    serializer_class = StudentAssessmentSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        assessment_id = self.kwargs['assessment_id']
+        return StudentAssessment.objects.get(user=self.request.user, assessment_id=assessment_id)
+
+class RewardView(ModelViewSet):
+    permission_classes = [IsAuthenticated]
+    queryset = Reward.objects.all()
+    serializer_class = RewardSerializer
+    filter_backends=[SearchFilter]
+    search_fields = ['category']

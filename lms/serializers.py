@@ -1,7 +1,22 @@
 from django.contrib.auth.hashers import make_password
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from lms.models import Comment, Course, CourseEnrollment, Lesson, Section, Student, Todo, Tutor, User
+from lms.models import (
+    Assessment,
+    Comment, 
+    Course,
+    CourseEnrollment,
+    CourseRating, 
+    Lesson,
+    Question,
+    Reward, 
+    Section, 
+    Student,
+    StudentAssessment, 
+    Todo, 
+    Tutor, 
+    User,
+)
 
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
@@ -40,40 +55,74 @@ class StudentSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source='user.username')
     class Meta:
         model = Student
-        fields = ['user','username','first_name','last_name','program','year_of_study','courses_enrolled']
+        fields = ['user','username','first_name','last_name','program','year_of_study','rewardPoints','courses_enrolled']
     
     def create(self, validated_data):
         user = self.context['request'].user
         return Student.objects.create(user = user, **validated_data)
 
 class TutorSerializer(serializers.ModelSerializer):
+    course_count = serializers.SerializerMethodField()
+    specializations = serializers.SerializerMethodField()
+    average_rating = serializers.SerializerMethodField()
     class Meta:
         model = Tutor
-        fields = ['user','first_name','last_name','specialization','department','years_of_experience','bio',]
+        fields = ['id','user','first_name','last_name','department','years_of_experience','bio','course_count','specializations','average_rating',]
     
     def create(self, validated_data):
         user = self.context['request'].user
         return Tutor.objects.create(user=user, **validated_data)
+    def get_course_count(self, obj):
+        return obj.get_course_count()  
+    def get_specializations(self,obj):
+        return obj.get_specializations()  
+    def get_average_rating(self, obj):
+        return obj.get_average_rating()        
+
+class CourseRatingSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CourseRating
+        fields = ['rating']
 
 class CourseSerializer(serializers.ModelSerializer):
     class Meta:
         model = Course        
         fields = '__all__'
 
-class SectionSerializer(serializers.ModelSerializer):
-    course = CourseSerializer
-    class Meta:
-        model = Section
-        fields = '__all__'  
-        read_only_fields = ['id','course'] 
-
-class LessonSerialzer(serializers.ModelSerializer):
-    section = SectionSerializer
+class LessonSerializer(serializers.ModelSerializer):
     class Meta:
         model = Lesson
         fields = '__all__'
-        read_only_fields = ['id','section']     
+        read_only_fields = ['id'] 
 
+class SectionSerializer(serializers.ModelSerializer):
+    course = CourseSerializer
+    lesson = LessonSerializer(many = True)
+    class Meta:
+        model = Section
+        fields = ['id','title','duration','lesson']  
+        read_only_fields = ['id','course','lesson']
+
+class CourseSerializer2(serializers.ModelSerializer):
+    section = SectionSerializer(many=True)
+    average_rating = serializers.SerializerMethodField() 
+    section_count = serializers.SerializerMethodField()
+    lesson_count = serializers.SerializerMethodField()
+    student_count = serializers.SerializerMethodField()
+    class Meta:
+        model = Course
+        fields = ['id', 'image','title', 'description','category', 'tutor' , 'duration' ,'section_count', 'lesson_count','student_count','average_rating', 'section'] 
+
+    def get_average_rating(self, obj):
+        return obj.get_average_rating()
+    def get_section_count(self, obj):
+        return obj.get_section_count()
+    def get_lesson_count(self, obj):
+        return obj.get_lesson_count() 
+    def get_student_count(self, obj):
+        return obj.get_student_count()       
+
+    
 class CourseEnrollmentSerializer(serializers.ModelSerializer):
     course = CourseSerializer(read_only = True)
     class Meta:
@@ -92,3 +141,36 @@ class TodoSerializer(serializers.ModelSerializer):
         model = Todo
         fields = '__all__'
         read_only_fields = ['id','user']
+
+
+class QuestionSerializer(serializers.ModelSerializer):
+    options = serializers.SerializerMethodField()
+    class Meta:
+        model = Question
+        fields = ['id', 'question', 'question', 'marks','options','answer']
+
+    def get_options(self, obj):
+        return obj.get_options()    
+
+class AssessmentSerializer(serializers.ModelSerializer):
+    questions = QuestionSerializer(many = True)
+    total_marks = serializers.SerializerMethodField()
+    total_questions = serializers.SerializerMethodField()
+    class Meta:
+        model = Assessment
+        fields = ['id', 'title','total_questions', 'total_marks', 'questions']
+
+    def get_total_marks(self, obj):
+        return obj.get_total_marks()
+    def get_total_questions(self, obj):
+        return obj.get_total_questions()        
+
+class StudentAssessmentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = StudentAssessment
+        fields = ['id', 'is_completed', 'score']
+
+class RewardSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Reward
+        fields = ['id','category','productName','productImage','productPrice']
