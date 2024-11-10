@@ -67,7 +67,7 @@ class TutorSerializer(serializers.ModelSerializer):
     average_rating = serializers.SerializerMethodField()
     class Meta:
         model = Tutor
-        fields = ['id','user','first_name','last_name','department','years_of_experience','bio','course_count','specializations','average_rating',]
+        fields = ['id','user','first_name','last_name','image','banner','department','years_of_experience','bio','course_count','specializations','average_rating',]
     
     def create(self, validated_data):
         user = self.context['request'].user
@@ -87,7 +87,7 @@ class CourseRatingSerializer(serializers.ModelSerializer):
 class CourseSerializer(serializers.ModelSerializer):
     class Meta:
         model = Course        
-        fields = '__all__'
+        fields = ['id']
 
 class LessonSerializer(serializers.ModelSerializer):
     class Meta:
@@ -127,7 +127,7 @@ class CourseEnrollmentSerializer(serializers.ModelSerializer):
     course = CourseSerializer(read_only = True)
     class Meta:
         model = CourseEnrollment
-        fields = ['id', 'enrollment_date', 'validity', 'course'] 
+        fields = ['id','enrollment_date', 'validity', 'course']
 
 class CommmentSerializer(serializers.ModelSerializer):
     class Meta:

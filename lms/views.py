@@ -95,18 +95,6 @@ class StudentView(ModelViewSet):
     serializer_class = StudentSerializer
     permission_classes = [IsAuthenticated]
 
-class TutorProfileView(RetrieveUpdateAPIView):
-    permission_classes = [IsAuthenticated]
-    serializer_class = TutorSerializer
-
-    def get_object(self):
-        try:
-            return Tutor.objects.get(user = self.request.user)
-        except Tutor.DoesNotExist:
-            raise NotFound("Tutor profile not found.")
-        except Exception as e:
-            return Response(str(e))
-
 class TutorView(ModelViewSet):
     queryset = Tutor.objects.all()
     serializer_class = TutorSerializer 

@@ -24,14 +24,14 @@ class Student(models.Model):
     def __str__(self) :
         return self.first_name
 
-    def update_rewardPoints(self):
-        assessment = StudentAssessment.objects.get(user = self.user)
 
 
 class Tutor(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     first_name = models.CharField(max_length=50, null=True)
-    last_name = models.CharField(max_length=50, null=True)    
+    last_name = models.CharField(max_length=50, null=True)  
+    image = models.CharField(max_length=255,default="")
+    banner = models.CharField(max_length=255,default="")  
     specialization = models.TextField(null=True)
     department = models.CharField(max_length=100)
     years_of_experience = models.IntegerField()
@@ -171,6 +171,9 @@ class CourseEnrollment(models.Model):
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
     enrollment_date = models.DateTimeField(auto_now_add=True)
     validity = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"{self.student.first_name} - {self.course}"
 
 class Comment(models.Model):
     course = models.ForeignKey(Course, on_delete=models.CASCADE)

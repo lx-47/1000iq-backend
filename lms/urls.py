@@ -16,7 +16,6 @@ from .views import (
     StudentView, 
     StudentProfileView, 
     TodoView, 
-    TutorProfileView, 
     TutorView, 
     UserView, 
     EnrolledView
@@ -44,7 +43,6 @@ urlpatterns = [
     path('logout/', LogoutView.as_view(), name='login'),
     path('change-password/', ChangePasswordView.as_view(), name='change_password'),
     path('student-profile/', StudentProfileView.as_view(), name='student_profile'),
-    path('tutor-profile/', TutorProfileView.as_view(), name='tutor_profile'),
     path('enrolled-courses/', EnrolledView.as_view(), name='enrolled'),
     path('courses/<int:course_id>/enroll/', EnrollCourseView.as_view(), name='enroll'),
     path('courses/<int:course_id>/comments/', CommentView.as_view(), name='comments'),
