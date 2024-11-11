@@ -40,6 +40,7 @@ class Tutor(models.Model):
     department = models.CharField(max_length=100)
     years_of_experience = models.IntegerField(default=0)
     bio = models.TextField(default="")
+    detailed_bio = models.TextField(default="")
     price = models.DecimalField(default=0, max_digits=7, decimal_places=2)
     discount = models.PositiveIntegerField(default=0)    
 
@@ -178,7 +179,7 @@ class CourseEnrollment(models.Model):
         return f"{self.student.first_name} - {self.course}"
 
 class Comment(models.Model):
-    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="comments")
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)  
     content = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
@@ -259,7 +260,8 @@ class Reward(models.Model):
     category = models.CharField(max_length=11, null=True, blank=True, choices=Choices)
     productName = models.CharField(max_length=100)
     productImage = models.CharField(max_length=255, null=True, blank=True)
-    productPrice = models.PositiveIntegerField(null=True, blank=True)
+    productPrice = models.DecimalField(max_digits=8,decimal_places=2,null=True, blank=True)
+    productDescription = models.TextField(default="")
 
     def __str__(self):
         return self.productName
