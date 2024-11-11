@@ -113,7 +113,7 @@ class CourseSerializer2(serializers.ModelSerializer):
     tutor = TutorSerializer
     class Meta:
         model = Course
-        fields = ['id', 'image','title', 'description','category', 'tutor' , 'duration' ,'section_count', 'lesson_count','student_count','student_ids','average_rating', 'sections'] 
+        fields = ['id', 'image','title', 'description','category', 'tutor' , 'duration' ,'price','discount','section_count', 'lesson_count','student_count','student_ids','average_rating', 'sections'] 
 
     def get_average_rating(self, obj):
         return obj.get_average_rating()
