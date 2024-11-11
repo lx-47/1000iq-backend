@@ -95,10 +95,29 @@ class StudentView(ModelViewSet):
     serializer_class = StudentSerializer
     permission_classes = [IsAuthenticated]
 
+class TutorProfileView(RetrieveUpdateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = TutorSerializer
+    def get_object(self):
+        try:
+            return Tutor.objects.get(user = self.request.user)
+        except Tutor.DoesNotExist:
+            raise NotFound("Tutor profile not found.")
+        except Exception as e:
+            return Response(str(e))    
+
 class TutorView(ModelViewSet):
     queryset = Tutor.objects.all()
     serializer_class = TutorSerializer 
     permission_classes = [IsAuthenticated]
+
+class CourseCreateView(APIView):
+    def post(self, request):
+        serializer = CourseSerializer(data=request.data)
+        if serializer.is_valid():
+            course = serializer.save()  # Save the course instance
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class CourseView(ModelViewSet):
     queryset = Course.objects.all()
@@ -278,3 +297,10 @@ class RewardView(ModelViewSet):
     serializer_class = RewardSerializer
     filter_backends=[SearchFilter]
     search_fields = ['category']
+
+class LeaderboardView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        students = Student.objects.select_related('user').values('user__id','user__username', 'rewardPoints').order_by('-rewardPoints')
+        return Response(students)

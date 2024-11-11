@@ -55,7 +55,7 @@ class StudentSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source='user.username')
     class Meta:
         model = Student
-        fields = ['user','username','first_name','last_name','program','year_of_study','rewardPoints','courses_enrolled']
+        fields = ['user','image','banner','username','email','first_name','last_name','rewardPoints','courses_enrolled']
     
     def create(self, validated_data):
         user = self.context['request'].user
@@ -67,7 +67,7 @@ class TutorSerializer(serializers.ModelSerializer):
     average_rating = serializers.SerializerMethodField()
     class Meta:
         model = Tutor
-        fields = ['id','user','first_name','last_name','image','banner','department','years_of_experience','bio','course_count','specializations','average_rating',]
+        fields = ['id','user','email','first_name','last_name','image','banner','department','years_of_experience','bio','course_count','specializations','average_rating',]
     
     def create(self, validated_data):
         user = self.context['request'].user
@@ -82,12 +82,12 @@ class TutorSerializer(serializers.ModelSerializer):
 class CourseRatingSerializer(serializers.ModelSerializer):
     class Meta:
         model = CourseRating
-        fields = ['rating']
+        fields = ['id']
 
 class CourseSerializer(serializers.ModelSerializer):
     class Meta:
         model = Course        
-        fields = ['id']
+        fields = ['id','image','title','description','category','tutor']
 
 class LessonSerializer(serializers.ModelSerializer):
     class Meta:
@@ -104,14 +104,16 @@ class SectionSerializer(serializers.ModelSerializer):
         read_only_fields = ['id','course','lesson']
 
 class CourseSerializer2(serializers.ModelSerializer):
-    section = SectionSerializer(many=True)
+    sections = SectionSerializer(many=True, read_only = True)
     average_rating = serializers.SerializerMethodField() 
     section_count = serializers.SerializerMethodField()
     lesson_count = serializers.SerializerMethodField()
     student_count = serializers.SerializerMethodField()
+    student_ids = serializers.SerializerMethodField()
+    tutor = TutorSerializer
     class Meta:
         model = Course
-        fields = ['id', 'image','title', 'description','category', 'tutor' , 'duration' ,'section_count', 'lesson_count','student_count','average_rating', 'section'] 
+        fields = ['id', 'image','title', 'description','category', 'tutor' , 'duration' ,'section_count', 'lesson_count','student_count','student_ids','average_rating', 'sections'] 
 
     def get_average_rating(self, obj):
         return obj.get_average_rating()
@@ -120,7 +122,10 @@ class CourseSerializer2(serializers.ModelSerializer):
     def get_lesson_count(self, obj):
         return obj.get_lesson_count() 
     def get_student_count(self, obj):
-        return obj.get_student_count()       
+        return obj.get_student_count()
+    def get_student_ids(self, obj):
+        return obj.get_student_ids()
+           
 
     
 class CourseEnrollmentSerializer(serializers.ModelSerializer):

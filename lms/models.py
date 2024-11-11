@@ -1,3 +1,5 @@
+from email.mime import image
+from itertools import count
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.conf import settings
@@ -14,15 +16,16 @@ class User(AbstractUser):
         return self.username
 
 class Student(models.Model):
+    image = models.CharField(max_length=255,default="")
+    banner = models.CharField(max_length=255,default="") 
     first_name = models.CharField(max_length = 50, null = True, blank = True)
     last_name = models.CharField(max_length = 50, null = True, blank=True)        
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    program = models.CharField(max_length=100, null=True)
-    year_of_study = models.PositiveIntegerField(blank=False)
+    email = models.CharField(max_length=100, default="")
     rewardPoints = models.PositiveIntegerField(default=0)
     courses_enrolled = models.ManyToManyField('Course' ,through='CourseEnrollment',through_fields=("student", "course"),blank=True, related_name='enrolled_students')
-    def __str__(self) :
-        return self.first_name
+    def __str__(self):
+        return f"{self.first_name or 'Unknown'} {self.last_name or ''}".strip()
 
 
 
@@ -30,12 +33,13 @@ class Tutor(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     first_name = models.CharField(max_length=50, null=True)
     last_name = models.CharField(max_length=50, null=True)  
+    email = models.CharField(max_length=100, default="")
     image = models.CharField(max_length=255,default="")
     banner = models.CharField(max_length=255,default="")  
     specialization = models.TextField(null=True)
     department = models.CharField(max_length=100)
-    years_of_experience = models.IntegerField()
-    bio = models.TextField(blank=True, null=True)
+    years_of_experience = models.IntegerField(default=0)
+    bio = models.TextField(default="")
 
     def __str__(self):
         return self.first_name
@@ -79,36 +83,35 @@ class Tutor(models.Model):
 class Course(models.Model):
     image = models.CharField(max_length=255, null=True, blank=True)
     title = models.CharField(max_length=255)
-    description = models.TextField()
+    description = models.TextField(default="")
     category = models.CharField(max_length=30, null=True, blank=True)
-    tutor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    duration = models.PositiveIntegerField(blank=True, null=True)
+    tutor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="courses")
+    duration = models.PositiveIntegerField(default=0)
+    price = models.DecimalField(default=0, max_digits=7, decimal_places=2)
+    discount = models.PositiveIntegerField(default=0)
 
-    def __str__(self) :
+    def __str__(self):
         return self.title
 
     def get_student_count(self):
-        enrollment = CourseEnrollment.objects.filter(course = self)
-        return enrollment.count()
+        return CourseEnrollment.objects.filter(course=self).count()
+
+    def get_student_ids(self):
+        enrollments = CourseEnrollment.objects.filter(course = self)
+        return [enrollment.student.user.id for enrollment in enrollments]
 
     def get_section_count(self):
-        return Section.objects.filter(course = self).count()
+        return Section.objects.filter(course=self).count()
 
     def total_duration(self):
-        sections = Section.objects.filter(course = self)
+        sections = Section.objects.filter(course=self)
         return sum(section.duration or 0 for section in sections) or 0
 
-    def save(self, *args, **kwargs):
-        self.duration = self.total_duration()
-        super().save(*args, **kwargs)
-
     def get_lesson_count(self):
-        sections = Section.objects.filter(course = self)
-        return sum(section.lesson.count() for section in sections)
+        return sum(section.lesson.count() for section in Section.objects.filter(course=self))
 
     def get_average_rating(self):
-        ratings = self.ratings.all()  
-
+        ratings = self.ratings.all()
         if not ratings.exists():
             return {
                 "average_rating": None,
@@ -129,34 +132,31 @@ class Course(models.Model):
                 rating_counts[rating_value] += 1
 
         avg_rating = total_sum / total_ratings
-
         return {
             "average_rating": avg_rating,
             "total_count": total_ratings,
             "rating_counts": rating_counts
         }
 
+
 class Section(models.Model):
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='section')
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='sections')
     title = models.CharField(max_length=255)
-    duration = models.PositiveIntegerField(null=True, blank=True)
+    duration = models.PositiveIntegerField(default=0)
     
-    def __str__(self) :
+    def __str__(self):
         return self.title
-
+    
     def total_duration(self):
-        lessons = Lesson.objects.filter(section = self)
+        lessons = Lesson.objects.filter(section=self)
         return sum(lesson.duration or 0 for lesson in lessons) or 0
-
-    def save(self, *args, **kwargs):
-        self.duration = self.total_duration()
-        super().save(*args, **kwargs)
 
 
 class Lesson(models.Model):
     Choices=[
         ('reading','Reading'),
         ('video','Video'),
+        ('assessment','Assessment')
     ]
     section = models.ForeignKey(Section, on_delete=models.CASCADE, related_name='lesson')
     title = models.CharField(max_length=255)
@@ -243,7 +243,7 @@ class StudentAssessment(models.Model):
     score = models.PositiveIntegerField(null=True, blank=True) 
 
     def __str__(self):
-        return f"{self.student} - {self.assessment} - Score: {self.score}"
+        return f"{self.user} - {self.assessment} - Score: {self.score}"
 
 class Reward(models.Model):
     Choices=[

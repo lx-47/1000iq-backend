@@ -1,13 +1,16 @@
+from unicodedata import name
 from django.urls import path,include
 from rest_framework.routers import DefaultRouter
 from .views import (
     AssessmentViewSet, 
     ChangePasswordView, 
-    CommentView, 
-    CourseView, 
+    CommentView,
+    CourseCreateView, 
+    CourseView,
     EnrollCourseView, 
-    EnrolledStudentsView, 
-    LessonView, 
+    EnrolledStudentsView,
+    LeaderboardView, 
+    LessonView,
     RatingView,
     RewardView, 
     SectionView, 
@@ -15,7 +18,8 @@ from .views import (
     StudentAssessmentViewSet, 
     StudentView, 
     StudentProfileView, 
-    TodoView, 
+    TodoView,
+    TutorProfileView, 
     TutorView, 
     UserView, 
     EnrolledView
@@ -43,6 +47,7 @@ urlpatterns = [
     path('logout/', LogoutView.as_view(), name='login'),
     path('change-password/', ChangePasswordView.as_view(), name='change_password'),
     path('student-profile/', StudentProfileView.as_view(), name='student_profile'),
+    path('tutor-profile/', TutorProfileView.as_view(), name='tutor_profile'),
     path('enrolled-courses/', EnrolledView.as_view(), name='enrolled'),
     path('courses/<int:course_id>/enroll/', EnrollCourseView.as_view(), name='enroll'),
     path('courses/<int:course_id>/comments/', CommentView.as_view(), name='comments'),
@@ -52,4 +57,6 @@ urlpatterns = [
     path('sections/<int:section_id>/assessments/', AssessmentViewSet.as_view({'get': 'list'})),
     path('assessments/<int:assessment_id>/reports/', StudentAssessmentViewSet.as_view(), name='reports'),
     path('courses/<int:course_id>/rating/', course_rating_create, name='course-rating-create'),
+    path('leaderboard/', LeaderboardView.as_view(), name='leaderboard'),
+    path('course/', CourseCreateView.as_view(), name='course'),
 ]

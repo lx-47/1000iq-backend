@@ -12,27 +12,20 @@ def remove_course_from_student_enrolled_courses(sender, instance, **kwargs):
     instance.student.courses_enrolled.remove(instance.course)
 
 @receiver(post_save, sender=Lesson)
-def update_section_duration_on_save(sender, instance, **kwargs):
-    section = instance.section
-    section.duration = section.total_duration()
-    section.save()
-
 @receiver(post_delete, sender=Lesson)
-def update_section_duration_on_delete(sender, instance, **kwargs):
+def update_section_duration(sender, instance, **kwargs):
     section = instance.section
     section.duration = section.total_duration()
     section.save()
 
 @receiver(post_save, sender=Section)
-def update_course_duration_on_save(sender, instance, **kwargs):
+@receiver(post_delete, sender=Section)
+def update_course_duration(sender, instance, **kwargs):
+    # Get the course related to this section
     course = instance.course
+    # Recalculate the total duration for the course
     course.duration = course.total_duration()
-    course.save()    
-
-@receiver(post_save, sender=Section)
-def update_course_duration_on_delete(sender, instance, **kwargs):
-    course = instance.course
-    course.duration = course.total_duration()
+    # Save the updated course instance
     course.save()
 
 @receiver(post_save, sender=StudentAssessment)
