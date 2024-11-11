@@ -1,74 +1,50 @@
 #!/bin/bash
 
-echo "Adding assessments and questions for section 18 of Network Security Fundamentals..."
+echo "Adding assessment for section 36 with 10 questions..."
+
+# Run Django shell and execute the following commands
 python manage.py shell <<EOF
-from lms.models import Course, Section, Lesson, Assessment, Question
+from lms.models import Section, Assessment, Question  # Replace 'lms' with the name of your Django app
 
-# Assuming course is already defined, if not define it by name or ID
-course = Course.objects.get(title="Network Security Fundamentals")
+# Define assessment and questions for section 36
+try:
+    section = Section.objects.get(id=36)
+    
+    # Create assessment for section 36
+    assessment = Assessment.objects.create(
+        section=section,
+        title="Assessment: Model Evaluation Techniques",
+    )
 
-# Get section 18 by title or any other unique identifier
-section_18 = Section.objects.filter(course=course, title="Section 18 Title").first()  # Replace with actual title or identifier of section 18
-
-if section_18:
-    # Define lessons data
-    lesson_data = [
-        {
-            'title': 'Assessment for Section 18',
-            'content_type': 'assessment',
-            'content': '',
-            'duration': 0  # Or set duration if needed
-        }
+    # Define questions for the assessment
+    questions_data = [
+        {"question": "Cross-validation helps to avoid overfitting.", "options": "True, False", "answer": "True", "marks": 5},
+        {"question": "Confusion matrix is used only for regression models.", "options": "True, False", "answer": "False", "marks": 5},
+        {"question": "Which metric is commonly used for classification models?", "options": "Accuracy, R-squared, MSE", "answer": "Accuracy", "marks": 5},
+        {"question": "What is the purpose of cross-validation?", "options": "To tune hyperparameters, To evaluate model performance, To train models", "answer": "To evaluate model performance", "marks": 5},
+        {"question": "Which model evaluation metric is suitable for regression?", "options": "Precision, Recall, R-squared", "answer": "R-squared", "marks": 5},
+        {"question": "Precision and recall are metrics used for classification models.", "options": "True, False", "answer": "True", "marks": 5},
+        {"question": "ROC curve is useful to evaluate which type of model?", "options": "Regression, Classification", "answer": "Classification", "marks": 5},
+        {"question": "Which metric is not typically used in model evaluation?", "options": "Accuracy, F1 Score, Mean Squared Error, Standard Deviation", "answer": "Standard Deviation", "marks": 5},
+        {"question": "A high accuracy always means a good model.", "options": "True, False", "answer": "False", "marks": 5},
+        {"question": "Which method can help in handling imbalanced data?", "options": "Cross-validation, Resampling techniques, Normalization", "answer": "Resampling techniques", "marks": 5}
     ]
 
-    # Create lessons and assessments for section 18
-    for lesson in lesson_data:
-        # Create lesson
-        lesson_instance = Lesson.objects.create(
-            section=section_18,
-            title=lesson['title'],
-            content_type=lesson['content_type'],
-            content=lesson['content'],
-            duration=lesson['duration']
+    # Add questions to the assessment
+    for question_data in questions_data:
+        Question.objects.create(
+            assessment=assessment,
+            question=question_data["question"],
+            options=question_data["options"],
+            answer=question_data["answer"],
+            marks=question_data["marks"]
         )
-        print(f"Lesson '{lesson_instance.title}' added to section '{section_18.title}'.")
 
-        # If the lesson is an assessment, create questions
-        if lesson['content_type'] == 'assessment':
-            # Create assessment
-            assessment = Assessment.objects.create(
-                section=section_18,
-                title=lesson['title'],
-                is_active=True
-            )
-            print(f"Assessment '{assessment.title}' added to section '{section_18.title}'.")
+    print("Assessment with questions added to section 36.")
+except Section.DoesNotExist:
+    print("Section with ID 36 does not exist.")
 
-            # Define questions for this assessment
-            questions_data = [
-                {"question": "What is the first step in data preprocessing?", "options": "Data Cleaning, Data Transformation, Feature Selection", "answer": "Data Cleaning", "marks": 5},
-                {"question": "Which method is used for missing data?", "options": "Imputation, Removal, Duplication", "answer": "Imputation", "marks": 5},
-                {"question": "What is overfitting?", "options": "When the model performs well on training data but poorly on unseen data, When the model performs well on both training and testing data", "answer": "When the model performs well on training data but poorly on unseen data", "marks": 5},
-                {"question": "Which metric is used for classification models?", "options": "Accuracy, R-squared, MSE", "answer": "Accuracy", "marks": 5},
-                {"question": "Which algorithm is used for classification?", "options": "KNN, Linear Regression, PCA", "answer": "KNN", "marks": 5},
-                {"question": "What is feature scaling?", "options": "Normalizing data, Reducing data size, Changing data types", "answer": "Normalizing data", "marks": 5},
-                {"question": "What is the purpose of cross-validation?", "options": "To tune hyperparameters, To evaluate model performance, To train models", "answer": "To evaluate model performance", "marks": 5},
-                {"question": "What is a confusion matrix?", "options": "A matrix to evaluate classification performance, A matrix to evaluate regression models", "answer": "A matrix to evaluate classification performance", "marks": 5},
-                {"question": "Which model is used for regression?", "options": "Linear Regression, KNN, Decision Tree", "answer": "Linear Regression", "marks": 5},
-                {"question": "What does PCA stand for?", "options": "Principal Component Analysis, Preprocessing Component Analysis", "answer": "Principal Component Analysis", "marks": 5}
-            ]
-
-            # Add questions to the assessment
-            for q in questions_data:
-                Question.objects.create(
-                    assessment=assessment,
-                    question=q['question'],
-                    options=q['options'],
-                    answer=q['answer'],
-                    marks=q['marks']
-                )
-                print(f"Question '{q['question']}' added to assessment '{assessment.title}'.")
-else:
-    print("Section 18 not found!")
+print("Assessment and questions have been successfully added.")
 EOF
 
-echo "Assessment and questions for section 18 have been successfully added."
+echo "Assessment has been successfully added to section 36."

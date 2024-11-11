@@ -40,6 +40,8 @@ class Tutor(models.Model):
     department = models.CharField(max_length=100)
     years_of_experience = models.IntegerField(default=0)
     bio = models.TextField(default="")
+    price = models.DecimalField(default=0, max_digits=7, decimal_places=2)
+    discount = models.PositiveIntegerField(default=0)    
 
     def __str__(self):
         return self.first_name
@@ -186,14 +188,14 @@ class Comment(models.Model):
 class CourseRating(models.Model):
     course = models.ForeignKey('Course', related_name='ratings', on_delete=models.CASCADE)
     student = models.ForeignKey('Student', on_delete=models.CASCADE)
-    rating = models.PositiveIntegerField()
+    rating = models.PositiveIntegerField(default = 0)
     
     class Meta:
         unique_together = ('course', 'student')  
 
     def __str__(self):
         student_name = self.student.first_name if self.student.first_name else "Unnamed Student"
-        return f"{self.course.title} - {student_name} Rating: {self.rating}"
+        return f"{self.course.title} - {self.student.first_name} Rating: {self.rating}"
         
 
 class Todo(models.Model):    
