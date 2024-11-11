@@ -111,11 +111,18 @@ class TutorView(ModelViewSet):
     serializer_class = TutorSerializer 
     permission_classes = [IsAuthenticated]
 
+class TutorView2(ModelViewSet):
+    serializer_class = TutorSerializer 
+    permission_classes = [IsAuthenticated]
+    def get_queryset(self):
+        user_id = self.kwargs['id']  
+        return Tutor.objects.filter(user__id=user_id)
+
 class CourseCreateView(APIView):
     def post(self, request):
         serializer = CourseSerializer(data=request.data)
         if serializer.is_valid():
-            course = serializer.save()  # Save the course instance
+            course = serializer.save()  
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

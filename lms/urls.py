@@ -20,7 +20,8 @@ from .views import (
     StudentProfileView, 
     TodoView,
     TutorProfileView, 
-    TutorView, 
+    TutorView,
+    TutorView2, 
     UserView, 
     EnrolledView
 )
@@ -30,7 +31,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 router = DefaultRouter()
 router.register(r'user', UserView)
 router.register(r'student', StudentView)
-router.register(r'tutors', TutorView)
+router.register(r'tutors',TutorView)
 router.register(r'courses', CourseView)
 router.register(r'todo', TodoView)
 router.register(r'sections', SectionView)    
@@ -59,4 +60,5 @@ urlpatterns = [
     path('courses/<int:course_id>/rating/', course_rating_create, name='course-rating-create'),
     path('leaderboard/', LeaderboardView.as_view(), name='leaderboard'),
     path('course/', CourseCreateView.as_view(), name='course'),
+    path('tutor/<int:id>/', TutorView2.as_view({'get':'list'}), name='tutor'),
 ]
