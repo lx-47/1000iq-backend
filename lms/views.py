@@ -137,8 +137,9 @@ class RatingView(ModelViewSet):
     serializer_class = CourseRatingSerializer
     permission_classes = [IsAuthenticated]
 
-    def get_queryset(self):
-        return CourseRating.objects.filter(student__user=self.request.user)
+    def get_queryset(self, *args, **kwargs):
+        course_id = self.kwargs.get('course_id')
+        return CourseRating.objects.filter(course = course_id)
 
     def create(self, request, *args, **kwargs):
         # Get the course ID from the URL

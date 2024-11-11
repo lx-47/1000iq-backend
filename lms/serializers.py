@@ -107,9 +107,10 @@ class TutorSerializer(serializers.ModelSerializer):
         return comment_serializer.data    
 
 class CourseRatingSerializer(serializers.ModelSerializer):
+    student_user_id = serializers.IntegerField(source='student.user.id', read_only=True)
     class Meta:
         model = CourseRating
-        fields = ['id']
+        fields = ['id','rating','student_user_id']
 
 
 class LessonSerializer(serializers.ModelSerializer):

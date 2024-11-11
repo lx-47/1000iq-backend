@@ -20,7 +20,7 @@ class Student(models.Model):
     banner = models.CharField(max_length=255,default="") 
     first_name = models.CharField(max_length = 50, null = True, blank = True)
     last_name = models.CharField(max_length = 50, null = True, blank=True)        
-    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='student')
     email = models.CharField(max_length=100, default="")
     rewardPoints = models.PositiveIntegerField(default=0)
     courses_enrolled = models.ManyToManyField('Course' ,through='CourseEnrollment',through_fields=("student", "course"),blank=True, related_name='enrolled_students')
