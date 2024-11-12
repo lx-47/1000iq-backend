@@ -165,7 +165,7 @@ class Lesson(models.Model):
     title = models.CharField(max_length=255)
     duration = models.PositiveIntegerField(blank=True, null=True)
     content_type = models.CharField(max_length=10, choices=Choices, null=True)
-    content = models.CharField(max_length=1000 ,null = True, blank = True)
+    content = models.TextField(null = True, blank = True)
     def __str__(self) :
         return self.title
 
@@ -233,7 +233,7 @@ class Question(models.Model):
 
     def get_options(self):
         ops = self.options.split(',')
-        options = {idx + 1 : option.strip() for idx, option in enumerate(ops)}
+        options = [op for op in ops]
         return options
 
     def __str__(self):
