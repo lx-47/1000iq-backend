@@ -1,268 +1,340 @@
-from email.mime import image
-from itertools import count
-from django.db import models
-from django.contrib.auth.models import AbstractUser
-from django.conf import settings
+from rest_framework.generics import RetrieveUpdateAPIView, UpdateAPIView
+from django.shortcuts import get_object_or_404
+from rest_framework.views import APIView
+from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
+from lms.models import (
+    Assessment,
+    Comment,
+    Course,
+    CourseEnrollment,
+    CourseRating,
+    Lesson,
+    Question,
+    Reward,
+    Section,
+    Student,
+    StudentAssessment,
+    Todo,
+    Tutor,
+    User,
+    Message  # Import the new Message model
+)
+from lms.serializers import (
+    AssessmentSerializer,
+    ChangePasswordSerializer,
+    CommmentSerializer,
+    CourseEnrollmentSerializer,
+    CourseRatingSerializer,
+    CourseSerializer,
+    CourseSerializer2,
+    LessonSerializer,
+    QuestionSerializer,
+    RewardSerializer,
+    SectionSerializer,
+    StudentAssessmentSerializer,
+    StudentSerializer,
+    TodoSerializer,
+    TutorSerializer,
+    UserSerializer,
+    MessageSerializer  # Import the new MessageSerializer
+)
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.exceptions import NotFound
+from rest_framework.filters import SearchFilter
 
-class User(AbstractUser):
-    Choices=[
-        ('student','Student'),
-        ('tutor','Tutor'),
-        ('admin','Admin'),
-    ]
-    role = models.CharField(max_length=8, choices=Choices)
+class RegisterView(APIView):
+    permission_classes = [AllowAny]
 
-    def __str__(self):
-        return self.username
+    def post(self, request):
+        serializer = UserSerializer(data=request.data)
 
-class Student(models.Model):
-    image = models.CharField(max_length=255,default="")
-    banner = models.CharField(max_length=255,default="") 
-    first_name = models.CharField(max_length = 50, null = True, blank = True)
-    last_name = models.CharField(max_length = 50, null = True, blank=True)        
-    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='student')
-    email = models.CharField(max_length=100, default="")
-    rewardPoints = models.PositiveIntegerField(default=0)
-    courses_enrolled = models.ManyToManyField('Course' ,through='CourseEnrollment',through_fields=("student", "course"),blank=True, related_name='enrolled_students')
-    def __str__(self):
-        return f"{self.first_name or 'Unknown'} {self.last_name or ''}".strip()
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+class LogoutView(APIView):
+    permission_classes = [IsAuthenticated]
+    def post(self, request):
+        try:
+            refresh_token = request.data['refresh']
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+            return Response(status=status.HTTP_205_RESET_CONTENT)
+        except KeyError:
+            return Response({'detail': 'Refresh token is required.'}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
+class UserView(ModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = [AllowAny]
 
-class Tutor(models.Model):
-    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    first_name = models.CharField(max_length=50, null=True)
-    last_name = models.CharField(max_length=50, null=True)  
-    email = models.CharField(max_length=100, default="")
-    image = models.CharField(max_length=255,default="")
-    banner = models.CharField(max_length=255,default="")  
-    specialization = models.TextField(null=True)
-    department = models.CharField(max_length=100)
-    years_of_experience = models.IntegerField(default=0)
-    bio = models.TextField(default="")
-    detailed_bio = models.TextField(default="")
-    price = models.DecimalField(default=0, max_digits=7, decimal_places=2)
-    discount = models.PositiveIntegerField(default=0)    
+class ChangePasswordView(UpdateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = ChangePasswordSerializer
 
-    def __str__(self):
-        return self.first_name
+    def update(self, request, *args, **kwargs):
+        self.object = request.user
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        return Response({"detail": "Password has been changed successfully."}, status=status.HTTP_200_OK)
 
-    def get_course_count(self):
-        return Course.objects.filter(tutor=self.user).count()
+class StudentProfileView(RetrieveUpdateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = StudentSerializer
 
-    def get_specializations(self):
-        return self.specialization.split(",")
+    def get_object(self):
+        return Student.objects.get(user = self.request.user)
 
-    def get_average_rating(self):
-        courses = Course.objects.filter(tutor=self.user) 
-        total_ratings = 0
-        total_sum = 0
-        rating_counts = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0}
+class StudentView(ModelViewSet):
+    queryset = Student.objects.all()
+    serializer_class = StudentSerializer
+    permission_classes = [IsAuthenticated]
 
-        for course in courses:
-            course_ratings = course.ratings.all()
-            for rating in course_ratings:
-                rating_value = rating.rating
-                total_sum += rating_value
-                total_ratings += 1
-                if rating_value in rating_counts:
-                    rating_counts[rating_value] += 1
+class TutorProfileView(RetrieveUpdateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = TutorSerializer
+    def get_object(self):
+        try:
+            return Tutor.objects.get(user = self.request.user)
+        except Tutor.DoesNotExist:
+            raise NotFound("Tutor profile not found.")
+        except Exception as e:
+            return Response(str(e))
 
-        if total_ratings == 0:
-            return {
-                "average_rating": None,
-                "total_count": 0,
-                "rating_counts": rating_counts
-            }
+class TutorView(ModelViewSet):
+    queryset = Tutor.objects.all()
+    serializer_class = TutorSerializer
+    permission_classes = [IsAuthenticated]
 
-        avg_rating = total_sum / total_ratings
+class TutorView2(ModelViewSet):
+    serializer_class = TutorSerializer
+    permission_classes = [IsAuthenticated]
+    def get_queryset(self):
+        user_id = self.kwargs['id']
+        return Tutor.objects.filter(user__id=user_id)
 
-        return {
-            "average_rating": avg_rating,
-            "total_count": total_ratings,
-            "rating_counts": rating_counts
-        }
+class CourseCreateView(APIView):
+    def post(self, request):
+        serializer = CourseSerializer(data=request.data)
+        if serializer.is_valid():
+            course = serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-class Course(models.Model):
-    image = models.CharField(max_length=255, null=True, blank=True)
-    title = models.CharField(max_length=255)
-    description = models.TextField(default="")
-    category = models.CharField(max_length=30, null=True, blank=True)
-    tutor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="courses")
-    duration = models.PositiveIntegerField(default=0)
-    price = models.DecimalField(default=0, max_digits=7, decimal_places=2)
-    discount = models.PositiveIntegerField(default=0)
+class CourseView(ModelViewSet):
+    queryset = Course.objects.all()
+    serializer_class = CourseSerializer2
+    permission_classes = [IsAuthenticated]
+    filter_backends=[SearchFilter]
+    search_fields = ['title','category','description']
 
-    def __str__(self):
-        return self.title
+class RatingView(ModelViewSet):
+    serializer_class = CourseRatingSerializer
+    permission_classes = [IsAuthenticated]
 
-    def get_student_count(self):
-        return CourseEnrollment.objects.filter(course=self).count()
+    def get_queryset(self, *args, **kwargs):
+        course_id = self.kwargs.get('course_id')
+        return CourseRating.objects.filter(course = course_id)
 
-    def get_student_ids(self):
-        enrollments = CourseEnrollment.objects.filter(course = self)
-        return [enrollment.student.user.id for enrollment in enrollments]
+    def create(self, request, *args, **kwargs):
+        # Get the course ID from the URL
+        course_id = self.kwargs.get('course_id')
+        course = get_object_or_404(Course, id=course_id)
 
-    def get_section_count(self):
-        return Section.objects.filter(course=self).count()
+        # Ensure the rating is unique for this student and course
+        if CourseRating.objects.filter(course=course, student__user=request.user).exists():
+            return Response({"detail": "You have already rated this course."}, status=status.HTTP_400_BAD_REQUEST)
 
-    def total_duration(self):
-        sections = Section.objects.filter(course=self)
-        return sum(section.duration or 0 for section in sections) or 0
+        # Create a rating
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(course=course, student=request.user.student)  # Use the related student instance
 
-    def get_lesson_count(self):
-        return sum(section.lesson.count() for section in Section.objects.filter(course=self))
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-    def get_average_rating(self):
-        ratings = self.ratings.all()
-        if not ratings.exists():
-            return {
-                "average_rating": None,
-                "total_count": 0,
-                "rating_counts": {1: 0, 2: 0, 3: 0, 4: 0, 5: 0}
-            }
+#To view all the courses a student has enrolled in
+class EnrolledView(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self, request):
+        user = request.user
+        try:
+            student = user.student
+        except Student.DoesNotExist:
+            return Response({'detail':'User is not a student'}, status=status.HTTP_403_FORBIDDEN)
 
-        rating_counts = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0}
-        total_ratings = 0
-        total_sum = 0
+        enrollments = CourseEnrollment.objects.filter(student=student)
+        serializer = CourseEnrollmentSerializer(enrollments, many = True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
-        for rating in ratings:
-            rating_value = rating.rating
-            total_sum += rating_value
-            total_ratings += 1
+#To view all students enrolled in a course
+class EnrolledStudentsView(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self, request, course_id):
+        try:
+            course = Course.objects.get(id = course_id)
+        except Course.DoesNotExist:
+            return Response({'detail':'Course not found.'}, status=status.HTTP_404_NOT_FOUND)
 
-            if rating_value in rating_counts:
-                rating_counts[rating_value] += 1
+        enrollments = CourseEnrollment.objects.filter(course = course)
+        students = [enrollment.student for enrollment in enrollments]
+        serializer = StudentSerializer(students, many = True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
-        avg_rating = total_sum / total_ratings
-        return {
-            "average_rating": avg_rating,
-            "total_count": total_ratings,
-            "rating_counts": rating_counts
-        }
+#To enroll in a course
+class EnrollCourseView(APIView):
+    permission_classes = [IsAuthenticated]
+    def post(self, request, course_id):
+        user = request.user
+        try:
+            student = user.student
+        except Student.DoesNotExist:
+            return Response({'detail': 'User is not a student'}, status=status.HTTP_403_FORBIDDEN)
+        try:
+            course = Course.objects.get(id=course_id)
+        except Course.DoesNotExist:
+            return Response({'detail': 'Course not found'}, status=status.HTTP_404_NOT_FOUND)
 
+        if CourseEnrollment.objects.filter(student=student, course=course).exists():
+            return Response({'detail': 'Already enrolled in this course'}, status=status.HTTP_400_BAD_REQUEST)
+        enrollment = CourseEnrollment.objects.create(student=student, course=course)
 
-class Section(models.Model):
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='sections')
-    title = models.CharField(max_length=255)
-    duration = models.PositiveIntegerField(default=0)
-    
-    def __str__(self):
-        return self.title
-    
-    def total_duration(self):
-        lessons = Lesson.objects.filter(section=self)
-        return sum(lesson.duration or 0 for lesson in lessons) or 0
+        return Response({
+            'id': enrollment.id,
+            'course': enrollment.course.id,
+            'enrollment_date': enrollment.enrollment_date,
+            'validity': enrollment.validity
+        }, status=status.HTTP_201_CREATED)
 
+#to add comments under a course
+class CommentView(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self, request, course_id):
+        comments = Comment.objects.filter(course_id = course_id)
+        serializer = CommmentSerializer(comments, many = True)
+        return Response(serializer.data)
 
-class Lesson(models.Model):
-    Choices=[
-        ('reading','Reading'),
-        ('video','Video'),
-        ('assessment','Assessment')
-    ]
-    section = models.ForeignKey(Section, on_delete=models.CASCADE, related_name='lesson')
-    title = models.CharField(max_length=255)
-    duration = models.PositiveIntegerField(blank=True, null=True)
-    content_type = models.CharField(max_length=10, choices=Choices, null=True)
-    content = models.TextField(null = True, blank = True)
-    def __str__(self) :
-        return self.title
+    def post(self, request, course_id):
+        try:
+            course = Course.objects.get(id=course_id)
+        except Course.DoesNotExist:
+            Response({'detail':'Course not found.'},status=status.HTTP_404_NOT_FOUND)
+        serialzer = CommmentSerializer(data=request.data)
+        if serialzer.is_valid():
+            serialzer.save(course = course, user = request.user)
+            return Response(serialzer.data, status=status.HTTP_201_CREATED)
+        return Response(serialzer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-class CourseEnrollment(models.Model):
-    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='students')
-    course = models.ForeignKey(Course, on_delete=models.CASCADE)
-    enrollment_date = models.DateTimeField(auto_now_add=True)
-    validity = models.BooleanField(default=True)
+class TodoView(ModelViewSet):
+    queryset = Todo.objects.all()
+    permission_classes = [IsAuthenticated]
+    serializer_class = TodoSerializer
+    def get_queryset(self):
+        return Todo.objects.filter(user = self.request.user)
+    def perform_create(self, serializer):
+        serializer.save(user = self.request.user)
 
-    def __str__(self):
-        return f"{self.student.first_name} - {self.course}"
+class SectionView(ModelViewSet):
+    permission_classes = [IsAuthenticated]
+    queryset = Section.objects.all()
+    serializer_class = SectionSerializer
 
-class Comment(models.Model):
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="comments")
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)  
-    content = models.TextField()
-    created_at = models.DateTimeField(auto_now_add=True)
-    def __str__(self) :
-        return self.content
+class Sectionview(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self, request, course_id):
+        section = Section.objects.filter(course_id = course_id)
+        serializer = SectionSerializer(section, many = True)
+        return Response(serializer.data, status = status.HTTP_200_OK)
 
-class CourseRating(models.Model):
-    course = models.ForeignKey('Course', related_name='ratings', on_delete=models.CASCADE)
-    student = models.ForeignKey('Student', on_delete=models.CASCADE)
-    rating = models.PositiveIntegerField(default = 0)
-    
-    class Meta:
-        unique_together = ('course', 'student')  
+    def post(self, request, course_id):
+        try:
+            course = Course.objects.get(id = course_id)
+        except Course.DoesNotExist:
+            Response({'detail':'Course not found.'},status=status.HTTP_404_NOT_FOUND)
+        serialzer = SectionSerializer(data = request.data)
+        if serialzer.is_valid():
+            serialzer.save(course = course)
+            return Response(serialzer.data, status=status.HTTP_201_CREATED)
+        return Response(serialzer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def __str__(self):
-        student_name = self.student.first_name if self.student.first_name else "Unnamed Student"
-        return f"{self.course.title} - {self.student.first_name} Rating: {self.rating}"
-        
+class LessonView(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self, request, section_id, *args, **kwargs):
 
-class Todo(models.Model):    
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    content = models.CharField(max_length=255)
-    category = models.CharField(max_length=20, null=True)
-    created_on = models.DateTimeField(null=True)
-    is_completed = models.BooleanField(default=False)
+        lesson = Lesson.objects.filter(section_id = section_id)
+        serializer = LessonSerializer(lesson, many = True)
+        return Response(serializer.data, status = status.HTTP_200_OK)
 
-    def __str__(self) :
-        return self.content
+    def post(self, request, section_id,  *args, **kwargs):
+        try:
+            section = Section.objects.get(id = section_id)
+        except Section.DoesNotExist:
+            Response({'detail':'Section not found.'},status=status.HTTP_404_NOT_FOUND)
+        serialzer = LessonSerializer(data = request.data)
+        if serialzer.is_valid():
+            serialzer.save(section = section)
+            return Response(serialzer.data, status=status.HTTP_201_CREATED)
+        return Response(serialzer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-class Assessment(models.Model):
-    section = models.ForeignKey('Section', on_delete=models.CASCADE)
-    title = models.CharField(max_length=255)
-    is_active = models.BooleanField(default=True)
+class AssessmentViewSet(ReadOnlyModelViewSet):
+    queryset = Assessment.objects.all()
+    serializer_class = AssessmentSerializer
+    permission_classes = [IsAuthenticated]
 
-    def get_total_questions(self):
-        return Question.objects.filter(assessment = self).count()
+    def get_queryset(self):
+        section_id = self.kwargs.get('section_id')
+        return Assessment.objects.filter(section_id=section_id, is_active=True)
 
-    def get_total_marks(self):
-        questions = Question.objects.filter(assessment = self)
-        return sum(question.marks or 0 for question in questions )
+class StudentAssessmentViewSet(RetrieveUpdateAPIView):
+    serializer_class = StudentAssessmentSerializer
+    permission_classes = [IsAuthenticated]
 
-    def __str__(self):
-        return self.title 
+    def get_object(self):
+        assessment_id = self.kwargs['assessment_id']
+        return StudentAssessment.objects.get(user=self.request.user, assessment_id=assessment_id)
 
-class Question(models.Model):
-    assessment = models.ForeignKey(Assessment, on_delete=models.CASCADE , related_name='questions')
-    question = models.CharField(max_length=255,default="")
-    options = models.CharField(max_length=255,null=True)
-    answer = models.CharField(max_length=255,null=True)
-    marks = models.PositiveIntegerField(null=True)
+class RewardView(ModelViewSet):
+    permission_classes = [IsAuthenticated]
+    queryset = Reward.objects.all()
+    serializer_class = RewardSerializer
+    filter_backends=[SearchFilter]
+    search_fields = ['category']
 
-    def get_options(self):
-        ops = self.options.split(',')
-        options = [op for op in ops]
-        return options
+class LeaderboardView(APIView):
+    permission_classes = [IsAuthenticated]
 
-    def __str__(self):
-        return self.question
+    def get(self, request):
+        students = Student.objects.select_related('user').values('user__id','user__username', 'rewardPoints').order_by('-rewardPoints')
+        return Response(students)
 
-class StudentAssessment(models.Model):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    assessment = models.ForeignKey(Assessment, on_delete=models.CASCADE)
-    is_completed = models.BooleanField(default=False)
-    score = models.PositiveIntegerField(null=True, blank=True) 
+# New Views for Chat Feature
+class ChatView(APIView):
+    permission_classes = [IsAuthenticated]
 
-    def __str__(self):
-        return f"{self.user} - {self.assessment} - Score: {self.score}"
+    def get(self, request, user_id):
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response({'detail': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
 
-class Reward(models.Model):
-    Choices=[
-        ('shoes','Shoes'),
-        ('books','Books'),
-        ('vouchers','Gift Cards & Vouchers'),
-        ('merchandise','Merchandise'),
-        ('tech','Tech'),
-        ('health','Health & Wellness')
-    ]
-    category = models.CharField(max_length=11, null=True, blank=True, choices=Choices)
-    productName = models.CharField(max_length=100)
-    productImage = models.CharField(max_length=255, null=True, blank=True)
-    productPrice = models.DecimalField(max_digits=8,decimal_places=2,null=True, blank=True)
-    productDescription = models.TextField(default="")
+        messages = Message.objects.filter(sender=request.user, receiver=user) | Message.objects.filter(sender=user, receiver=request.user)
+        serializer = MessageSerializer(messages, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
-    def __str__(self):
-        return self.productName
-    
+    def post(self, request, user_id):
+        try:
+            receiver = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response({'detail': 'Receiver not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = MessageSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(sender=request.user, receiver=receiver)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
